@@ -98,6 +98,11 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
 .refresh-btn.loading .refresh-icon { animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Respect the OS "reduce motion" setting: drop the spinner spin and chevron transition. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
 .status-bar {
   display: flex;
   align-items: center;
@@ -313,6 +318,23 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
   line-height: 1.4;
 }
 
+.rec-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.rec-row:last-of-type { border-bottom: none; }
+.rec-date { color: var(--amber); font-size: 0.72rem; min-width: 72px; }
+.rec-contract { color: var(--text); font-weight: 500; flex: 1; min-width: 90px; }
+.rec-ask { color: var(--muted); font-size: 0.75rem; }
+.rec-flag { color: var(--amber); font-size: 0.68rem; }
+.rec-empty { color: var(--muted); font-size: 0.85rem; padding: 0.5rem 0; }
+.rec-foot { margin-top: 0.85rem; margin-bottom: 0; }
+
 .edge-none { background: var(--surface2); color: var(--muted); }
 .edge-yes { background: var(--green-bg); color: var(--green); }
 .edge-no { background: var(--teal-bg); color: var(--teal); }
@@ -325,6 +347,12 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
 .info-card li { font-size: 0.82rem; color: var(--muted); line-height: 1.6; padding-left: 1em; position: relative; }
 .info-card li::before { content: '—'; position: absolute; left: 0; color: var(--border); }
 .info-card strong { color: var(--text); font-weight: 500; }
+
+/* Guide tab: numbered steps and a flagged disclaimer */
+.guide-steps { list-style: decimal; padding-left: 1.4em; display: flex; flex-direction: column; gap: 8px; }
+.guide-steps li { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+.guide-steps li::before { content: none; }
+.guide-disclaimer { border: 1px solid rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); }
 
 .loading { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.85rem; }
 .error { color: var(--red); font-size: 0.82rem; padding: 1rem; background: rgba(248,113,113,0.08); border-radius: 6px; }

@@ -1,3 +1,13 @@
+/**
+ * Systematic bias (°F) between the official settlement value and the forecast high:
+ *   b = E[KNYC Daily Climate Report max − NWS forecast high]
+ * The σ prior is mean-zero (forecast error variance), so it does NOT correct a location
+ * offset from sensor/siting at the Central Park station, the report's observation window,
+ * or rounding. The model centers on (μ + SETTLEMENT_BIAS). Default 0 = assume no bias
+ * (current behavior); set to an empirically estimated value once forecast-vs-official data exists.
+ */
+export const SETTLEMENT_BIAS = 0;
+
 /** Forecast-error σ (°F) by whole-day lead in America/New_York */
 const SIGMA_BY_LEAD_DAYS = {
   0: 2.0,
@@ -52,22 +62,34 @@ export function probBetweenInclusive(mu, sigma, low, high) {
 
 /**
  * Model P(YES) for a KXHIGHNY market given forecast high μ (°F).
+ *
+ * IMPORTANT — the strike fields mean different things per strike_type (matches Kalshi's wording):
+ *   - 'greater': floor_strike is a STRICT exclusive threshold. "greater than 85°" → YES for 86+
+ *     (85 itself is NOT a YES). probGreaterThan applies a +0.5 continuity correction → P(T≥86).
+ *   - 'less':    cap_strike is a STRICT exclusive threshold. "less than 78°" → YES for 77-
+ *     (78 itself is NOT a YES). probLessThan applies a −0.5 correction → P(T≤77).
+ *   - 'between': floor_strike/cap_strike are INCLUSIVE bounds. "84-85°" → YES for 84 and 85.
+ * Do not assume floor_strike is always inclusive: treating 'greater' like 'between' silently
+ * yields P(T≥85) instead of P(T≥86) — an off-by-one that still sums to ~1 across the ladder.
+ *
  * @param {{ strike_type?: string, floor_strike?: number|null, cap_strike?: number|null }} market
  */
 export function modelProbYes(market, mu, sigma) {
   const type = market.strike_type;
+  // Center the model on the bias-adjusted forecast (μ is the raw forecast high; settlement may run offset).
+  const muAdj = mu + SETTLEMENT_BIAS;
   if (type === 'greater' && market.floor_strike != null) {
-    return probGreaterThan(mu, sigma, market.floor_strike);
+    return probGreaterThan(muAdj, sigma, market.floor_strike);
   }
   if (type === 'less' && market.cap_strike != null) {
-    return probLessThan(mu, sigma, market.cap_strike);
+    return probLessThan(muAdj, sigma, market.cap_strike);
   }
   if (
     type === 'between' &&
     market.floor_strike != null &&
     market.cap_strike != null
   ) {
-    return probBetweenInclusive(mu, sigma, market.floor_strike, market.cap_strike);
+    return probBetweenInclusive(muAdj, sigma, market.floor_strike, market.cap_strike);
   }
   return null;
 }

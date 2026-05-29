@@ -20,15 +20,27 @@ function activateTab(btn, { focus = false } = {}) {
     b.setAttribute('aria-selected', selected ? 'true' : 'false');
     b.tabIndex = selected ? 0 : -1; // roving tabindex: only the active tab is in the tab order
   });
-  document.getElementById('tab-forecast').style.display = tab === 'forecast' ? 'block' : 'none';
-  document.getElementById('tab-edge').style.display = tab === 'edge' ? 'block' : 'none';
+  document.querySelectorAll('[role="tabpanel"]').forEach((panel) => {
+    panel.style.display = panel.id === `tab-${tab}` ? 'block' : 'none';
+  });
   if (focus) btn.focus();
+  // Reflect the active tab in the URL hash so reload/bookmark/back preserves it (replaceState = no scroll, no history spam).
+  if (location.hash !== `#${tab}`) history.replaceState(null, '', `#${tab}`);
   if (tab === 'edge') renderEdgeTable();
+}
+
+function activateTabByName(name, opts) {
+  const btn = tabButtons.find((b) => b.dataset.tab === name);
+  if (btn) activateTab(btn, opts);
 }
 
 tabButtons.forEach((btn) => {
   btn.addEventListener('click', () => activateTab(btn));
 });
+
+// Deep-link: honor #tab on load and on back/forward navigation.
+activateTabByName(location.hash.replace('#', ''));
+window.addEventListener('hashchange', () => activateTabByName(location.hash.replace('#', '')));
 
 document.querySelector('[role="tablist"]').addEventListener('keydown', (e) => {
   const i = tabButtons.indexOf(document.activeElement);
@@ -212,7 +224,78 @@ function renderForecast(nws) {
     .join('');
 }
 
+/**
+ * Full model-vs-market evaluation for one contract. Shared by the table, the override handler,
+ * and the recommendations list so all three stay consistent. Honors manual price overrides.
+ */
+function computeMarketEdge(market) {
+  const hasNws = !!state.nws;
+  const daytimeMap = hasNws ? daytimeByDate(state.nws.periods) : new Map();
+  const dateKey = marketDateKey(market);
+  const lead = leadDaysET(dateKey);
+  const mu = hasNws ? forecastHighForDate(daytimeMap, state.nws.maxTempByDate, dateKey) : null;
+  const sigma = sigmaForLeadDays(lead);
+  // raw (unclamped) drives the edge so tail edges aren't suppressed; clamp is display-only.
+  const raw = mu != null && sigma != null ? modelProbYes(market, mu, sigma) : null;
+  const manual = state.manualPrices[market.ticker];
+  const hasOverride = manual?.yes != null || manual?.no != null;
+  // Illiquid markets have no tradeable book; a manual override re-enables scenario testing.
+  const illiquid = isIlliquidMarket(market) && !hasOverride;
+  const { yesAsk, noAsk } = liquidAsks(market, manual?.yes, manual?.no);
+  const eval_ = illiquid
+    ? { side: 'none', label: 'Illiquid', className: 'edge-none' }
+    : raw != null
+      ? evaluateEdge(raw, yesAsk, noAsk)
+      : { side: 'none', label: sigma == null ? 'Stale' : 'No μ', className: 'edge-none' };
+  return {
+    dateKey, lead, mu, sigma, raw,
+    displayP: raw != null ? clampProb(raw) : null,
+    illiquid, yesAsk, noAsk, eval_,
+  };
+}
+
+/** Surface the actionable Buy YES/NO signals across all contracts, ranked by EV. */
+function renderRecommendations() {
+  const el = document.getElementById('recommendedBets');
+  if (!el) return;
+  if (!state.kalshi) {
+    el.innerHTML = '<div class="loading">Load forecast first</div>';
+    return;
+  }
+
+  const recs = (state.kalshi.markets || [])
+    .map((market) => ({ market, edge: computeMarketEdge(market) }))
+    .filter(({ edge }) => edge.eval_.side === 'yes' || edge.eval_.side === 'no')
+    .sort((a, b) => b.edge.eval_.ev - a.edge.eval_.ev);
+
+  if (!recs.length) {
+    el.innerHTML =
+      '<div class="rec-empty">No bets clear the threshold (≥7pp edge and ≥5¢ EV per $1 after fees) right now.</div>';
+    return;
+  }
+
+  el.innerHTML =
+    recs
+      .map(({ market, edge }) => {
+        const dayLabel = edge.dateKey === todayKeyET() ? 'Today' : edge.dateKey;
+        const ask = edge.eval_.side === 'yes' ? edge.yesAsk : edge.noAsk;
+        const longLead = edge.lead >= 4;
+        return `
+      <div class="rec-row">
+        <span class="rec-date">${dayLabel}</span>
+        <span class="rec-contract">${escapeHtml(contractLabel(market))}</span>
+        <span class="edge-badge ${edge.eval_.className}">${escapeHtml(edge.eval_.label)}</span>
+        <span class="rec-ask">@ ${formatCents(ask)}</span>
+        ${longLead ? '<span class="rec-flag" title="4–7 day lead: σ is uncalibrated at long leads, so this may be overconfident">long-lead ⚠</span>' : ''}
+      </div>`;
+      })
+      .join('') +
+    '<p class="helper-text rec-foot">Ranked by EV per $1. Reflects current asks &amp; any overrides. Heuristic only — not financial advice; see the Guide for limitations.</p>';
+}
+
 function renderEdgeTable() {
+  renderRecommendations();
+
   const el = document.getElementById('edgeTable');
   if (!state.kalshi) {
     el.innerHTML = '<div class="loading">Snapshot unavailable — refresh</div>';
@@ -257,18 +340,8 @@ function renderEdgeTable() {
 
     for (const market of groups.get(dateKey)) {
       const id = market.ticker;
-      const raw = mu != null && sigma != null ? modelProbYes(market, mu, sigma) : null;
-      const modelP = raw != null ? clampProb(raw) : null;
+      const { displayP, illiquid, yesAsk, noAsk, eval_ } = computeMarketEdge(market);
       const manual = state.manualPrices[id];
-      const hasOverride = manual?.yes != null || manual?.no != null;
-      // Illiquid markets have no tradeable book; manual overrides re-enable scenario testing.
-      const illiquid = isIlliquidMarket(market) && !hasOverride;
-      const { yesAsk, noAsk } = liquidAsks(market, manual?.yes, manual?.no);
-      const eval_ = illiquid
-        ? { label: 'Illiquid', className: 'edge-none' }
-        : modelP != null
-          ? evaluateEdge(modelP, yesAsk, noAsk)
-          : { label: stale ? 'Stale' : 'No μ', className: 'edge-none' };
       const yesOverride = manual?.yes != null ? Math.round(manual.yes * 100) : '';
       const noOverride = manual?.no != null ? Math.round(manual.no * 100) : '';
 
@@ -286,7 +359,7 @@ function renderEdgeTable() {
       rows += `
       <div class="edge-row${illiquid ? ' edge-row-illiquid' : ''}" data-ticker="${escapeHtml(id)}">
         ${labelCell}
-        <span class="edge-model" title="Normal(μ,σ) from forecast high; KNYC settlement">${modelP != null ? (modelP * 100).toFixed(0) + '%' : '—'}</span>
+        <span class="edge-model" title="Normal(μ,σ) from forecast high; KNYC settlement. Shown clamped 1–99%; the edge/EV uses the exact unclamped probability.">${displayP != null ? (displayP * 100).toFixed(0) + '%' : '—'}</span>
         <span class="edge-market">${formatCents(yesAsk)} / ${formatCents(noAsk)}</span>
         <label class="edge-override" data-side="yes">
           <span class="edge-override-label">YES ¢</span>
@@ -350,7 +423,10 @@ function onManualPrice(e) {
   const side = e.target.dataset.side; // 'yes' | 'no'
   const cents = parseFloat(e.target.value);
   if (!state.manualPrices[ticker]) state.manualPrices[ticker] = {};
-  state.manualPrices[ticker][side] = Number.isFinite(cents) ? cents / 100 : undefined;
+  // Clamp to a valid contract price [0,100]¢ so out-of-range input can't manufacture fake edges.
+  const clamped = Number.isFinite(cents) ? Math.min(100, Math.max(0, cents)) : undefined;
+  if (clamped != null && clamped !== cents) e.target.value = clamped;
+  state.manualPrices[ticker][side] = clamped != null ? clamped / 100 : undefined;
 
   // Debounce the recompute so rapid typing doesn't thrash; state is updated synchronously above.
   clearTimeout(manualPriceTimers[ticker]);
@@ -362,24 +438,7 @@ function updateEdgeRow(ticker) {
   const market = (state.kalshi.markets || []).find(m => m.ticker === ticker);
   if (!market) return;
 
-  const hasNws = !!state.nws;
-  const daytimeMap = hasNws ? daytimeByDate(state.nws.periods) : new Map();
-  const dateKey = marketDateKey(market);
-  const mu = hasNws ? forecastHighForDate(daytimeMap, state.nws.maxTempByDate, dateKey) : null;
-  const lead = leadDaysET(dateKey);
-  const sigma = sigmaForLeadDays(lead);
-
-  const raw = mu != null && sigma != null ? modelProbYes(market, mu, sigma) : null;
-  const modelP = raw != null ? clampProb(raw) : null;
-  const manual = state.manualPrices[ticker];
-  const hasOverride = manual?.yes != null || manual?.no != null;
-  const illiquid = isIlliquidMarket(market) && !hasOverride;
-  const { yesAsk, noAsk } = liquidAsks(market, manual?.yes, manual?.no);
-  const eval_ = illiquid
-    ? { label: 'Illiquid', className: 'edge-none' }
-    : modelP != null
-      ? evaluateEdge(modelP, yesAsk, noAsk)
-      : { label: sigma == null ? 'Stale' : 'No μ', className: 'edge-none' };
+  const { illiquid, yesAsk, noAsk, eval_ } = computeMarketEdge(market);
 
   const badge = document.getElementById(`badge_${cssId(ticker)}`);
   if (badge) {
@@ -391,6 +450,7 @@ function updateEdgeRow(ticker) {
     row.classList.toggle('edge-row-illiquid', illiquid);
     row.querySelector('.edge-market').textContent = `${formatCents(yesAsk)} / ${formatCents(noAsk)}`;
   }
+  renderRecommendations(); // an override can change which bets qualify
 }
 
 function cssId(ticker) {

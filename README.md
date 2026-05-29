@@ -19,9 +19,28 @@ Settlement uses the NWS **Daily Climate Report** max at Central Park ([KNYC](htt
 2. **σ** — forecast-error prior by lead time (Eastern date):
    - 0 days: 2.0°F  
    - 1 day: 2.5°F  
-   - 2+ days: 3.5°F  
-3. **P(YES)** — Normal(μ, σ) with Kalshi strike rules (`greater`, `less`, inclusive `between` brackets).
+   - **2+ days: flat 3.5°F** (every lead from 2d out — including 4–7d — uses the same value)
+3. **P(YES)** — Normal(μ + bias, σ) with Kalshi strike rules (`greater`, `less`, inclusive `between` brackets).
 4. **Signal** — flag Buy YES/NO when model vs executable ask differs by ≥7pp and estimated EV ≥5¢ per $1 after a 2¢ fee buffer.
+
+**Known limitation — μ bias:** σ is a *mean-zero* forecast-error prior, so it captures spread but not any
+*systematic* offset between the NWS forecast high and the official KNYC Daily Climate Report max (sensor/siting,
+observation window, rounding). That offset `b = E[official − forecast]` is exposed as `SETTLEMENT_BIAS` in
+[`js/probability.js`](js/probability.js), defaulting to `0` (assume no bias). Set it once you have empirical
+forecast-vs-official data; the model then centers on `μ + SETTLEMENT_BIAS`.
+
+**Known limitation — per-contract pricing:** every bracket for a date is a slice of the *same* Normal(μ, σ),
+so a **complete** strike ladder sums to 100% (verified: continuity-correction cut points partition the integer
+line with no gaps/overlaps). But contracts are scored **independently** — the tool doesn't enforce or display
+that the visible brackets form a full distribution, so a partial snapshot (closed/missing brackets) won't sum
+to 1, and there's no cross-date correlation. This is fine for "edge per contract" but is **not** a calibrated
+joint distribution.
+
+**Known limitation — flat σ at long leads:** `sigmaForLeadDays` returns 3.5°F for *every* lead ≥2 days
+([`js/probability.js`](js/probability.js)), but real NWS max-temp error keeps growing (~5–6°F by day 7).
+So 4–7d contracts (still within the forecast horizon, so μ exists) are modeled **overconfidently** — the
+distribution is too tight, which can manufacture *phantom edges* larger than the 7pp signal threshold. Treat
+long-lead signals with extra skepticism until σ is calibrated to historical KNYC forecast errors.
 
 This is a **transparent heuristic**, not calibrated to historical KNYC errors. Use at your own risk.
 

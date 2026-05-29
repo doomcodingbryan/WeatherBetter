@@ -1,16 +1,18 @@
+import { fetchWithTimeout } from './http.js';
+
 const LAT = 40.7789;
 const LON = -73.9692;
 const TZ = 'America/New_York';
 
 export async function fetchNwsBundle() {
-  const pointRes = await fetch(`https://api.weather.gov/points/${LAT},${LON}`);
+  const pointRes = await fetchWithTimeout(`https://api.weather.gov/points/${LAT},${LON}`);
   if (!pointRes.ok) throw new Error(`NWS points ${pointRes.status}`);
   const pointData = await pointRes.json();
   const props = pointData.properties;
 
   const [forecastRes, gridRes] = await Promise.all([
-    fetch(props.forecast),
-    fetch(props.forecastGridData),
+    fetchWithTimeout(props.forecast),
+    fetchWithTimeout(props.forecastGridData),
   ]);
   if (!forecastRes.ok) throw new Error(`NWS forecast ${forecastRes.status}`);
   if (!gridRes.ok) throw new Error(`NWS grid ${gridRes.status}`);

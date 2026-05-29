@@ -1,8 +1,10 @@
+import { fetchWithTimeout } from './http.js';
+
 const SNAPSHOT_PATH = 'data/kalshi-snapshot.json';
 
 export async function loadKalshiSnapshot() {
   // no-store + a cache-busting query so GitHub Pages / browser caches never serve a stale snapshot.
-  const res = await fetch(`${SNAPSHOT_PATH}?t=${Date.now()}`, { cache: 'no-store' });
+  const res = await fetchWithTimeout(`${SNAPSHOT_PATH}?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Kalshi snapshot ${res.status} — run Actions or add ${SNAPSHOT_PATH}`);
   return res.json();
 }
