@@ -16,26 +16,79 @@ jobs:
 
       - name: Fetch KXHIGHNY markets
         run: |
-          curl -sS "https://api.elections.kalshi.com/trade-api/v2/markets?series_ticker=KXHIGHNY&status=open&limit=200" \
-            -o /tmp/kalshi-raw.json
           python3 << 'PY'
-          import json
+          import json, sys, time
           from datetime import datetime, timezone
+          from urllib.request import urlopen, Request
+          from urllib.error import HTTPError, URLError
 
-          with open("/tmp/kalshi-raw.json") as f:
-              raw = json.load(f)
+          BASE = ("https://api.elections.kalshi.com/trade-api/v2/markets"
+                  "?series_ticker=KXHIGHNY&status=open&limit=200")
+          MAX_PAGES = 50  # safety cap (50 * 200 = 10k markets) to bound the loop
+
+          def fail(msg):
+              # Exit non-zero WITHOUT writing — the last good committed snapshot is preserved.
+              print(f"::error::Kalshi snapshot refresh failed: {msg}", file=sys.stderr)
+              sys.exit(1)
+
+          def fetch_page(cursor):
+              url = BASE + (f"&cursor={cursor}" if cursor else "")
+              last_err = None
+              for attempt in range(3):  # ride out transient network/5xx hiccups
+                  try:
+                      req = Request(url, headers={"Accept": "application/json"})
+                      with urlopen(req, timeout=30) as resp:
+                          body = resp.read().decode("utf-8")
+                      try:
+                          data = json.loads(body)
+                      except json.JSONDecodeError as e:
+                          fail(f"response is not valid JSON ({e})")
+                      if not isinstance(data, dict):
+                          fail(f"expected a JSON object, got {type(data).__name__}")
+                      if "error" in data:
+                          fail(f"API returned an error object: {data['error']}")
+                      return data
+                  except HTTPError as e:
+                      # 4xx are not retryable; 5xx are.
+                      if e.code < 500:
+                          fail(f"HTTP {e.code} from Kalshi API")
+                      last_err = f"HTTP {e.code}"
+                  except URLError as e:
+                      last_err = str(e.reason)
+                  time.sleep(5)
+              fail(f"network error after retries ({last_err})")
+
+          all_markets = []
+          cursor = None
+          for page in range(MAX_PAGES):
+              data = fetch_page(cursor)
+              markets = data.get("markets")
+              if not isinstance(markets, list):
+                  fail(f"'markets' missing or not a list (got {type(markets).__name__})")
+              all_markets.extend(markets)
+              cursor = data.get("cursor")
+              if not cursor or not markets:
+                  break
+          else:
+              fail(f"pagination did not terminate within {MAX_PAGES} pages — aborting")
+
+          if not all_markets:
+              fail("zero markets returned — refusing to overwrite snapshot")
+          missing = [i for i, m in enumerate(all_markets) if not isinstance(m, dict) or not m.get("ticker")]
+          if missing:
+              fail(f"{len(missing)} market(s) missing a 'ticker' field (e.g. index {missing[0]})")
 
           out = {
               "fetchedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "series": "KXHIGHNY",
-              "markets": raw.get("markets", []),
-              "cursor": raw.get("cursor"),
+              "markets": all_markets,
+              "cursor": None,  # snapshot is complete; nothing left to page
           }
 
           path = "data/kalshi-snapshot.json"
           with open(path, "w") as f:
               json.dump(out, f, indent=2)
-          print(f"Wrote {len(out['markets'])} markets to {path}")
+          print(f"Wrote {len(all_markets)} markets to {path} ({page + 1} page(s))")
           PY
 
       - name: Commit snapshot if changed

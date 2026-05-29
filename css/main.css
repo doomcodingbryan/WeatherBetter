@@ -1,5 +1,15 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 :root {
   --bg: #0f0f11;
   --surface: #1a1a1f;
@@ -45,6 +55,13 @@ header h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; }
 main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
 
 .tabs { display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center; }
+.tablist { display: flex; gap: 8px; }
+
+.tab:focus-visible,
+.refresh-btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
 
 .tab {
   padding: 6px 16px;
@@ -76,6 +93,10 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
 }
 
 .refresh-btn:hover { color: var(--text); }
+.refresh-btn[disabled] { opacity: 0.6; cursor: progress; }
+.refresh-icon { display: inline-block; }
+.refresh-btn.loading .refresh-icon { animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .status-bar {
   display: flex;
@@ -167,7 +188,7 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
 
 .edge-header, .edge-row {
   display: grid;
-  grid-template-columns: 1fr 64px 88px 56px 1fr;
+  grid-template-columns: 1fr 60px 84px 50px 50px 1fr;
   gap: 8px;
   align-items: center;
   font-size: 0.75rem;
@@ -188,6 +209,14 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
   font-size: 0.8rem;
 }
 
+/* Illiquid markets: dim the data cells but keep override inputs fully usable. */
+.edge-row-illiquid .edge-label,
+.edge-row-illiquid .edge-model,
+.edge-row-illiquid .edge-market,
+.edge-row-illiquid .edge-badge {
+  opacity: 0.4;
+}
+
 .edge-date-header {
   font-size: 0.72rem;
   color: var(--amber);
@@ -195,9 +224,64 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
   letter-spacing: 0.04em;
 }
 
+.mu-src {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+.mu-src-period { background: var(--surface2); color: var(--muted); }
+.mu-src-grid { background: rgba(251,191,36,0.15); color: var(--amber); }
+.mu-unavailable { color: var(--red); }
+
 .edge-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Contract is a toggle button revealing the resolution rules. */
+.edge-label-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.edge-label-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.edge-label-chevron { flex-shrink: 0; font-size: 0.7em; color: var(--muted); transition: transform 0.15s; }
+.edge-label-toggle.expanded .edge-label-chevron { transform: rotate(90deg); }
+.edge-label-toggle:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 3px; }
+
+.edge-rules {
+  grid-column: 1 / -1;
+  background: var(--surface2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.edge-rules p { margin-bottom: 6px; }
+.edge-rules p:last-child { margin-bottom: 0; }
+.edge-rules-primary { color: var(--text); }
+
 .edge-model { text-align: center; color: var(--amber); font-weight: 600; }
 .edge-market { text-align: center; color: var(--muted); font-size: 0.72rem; }
+
+/* Override field: a <label> wrapping the input. On desktop the label is just the grid cell
+   (its caption hidden); on mobile the caption shows and the field stacks in a card. */
+.edge-override { width: 100%; }
+.edge-override-label { display: none; }
 
 .edge-input {
   width: 100%;
@@ -216,6 +300,17 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem 2rem; }
   padding: 3px 8px;
   border-radius: 5px;
   text-align: center;
+}
+
+.edge-stale-warning {
+  background: rgba(248,113,113,0.12);
+  color: var(--red);
+  border: 1px solid rgba(248,113,113,0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.78rem;
+  line-height: 1.4;
 }
 
 .edge-none { background: var(--surface2); color: var(--muted); }
@@ -247,9 +342,51 @@ footer a { color: var(--muted); }
 @media (max-width: 640px) {
   .metrics-grid { grid-template-columns: 1fr 1fr; }
   header, main, footer { padding-left: 1rem; padding-right: 1rem; }
-  .edge-header, .edge-row {
-    grid-template-columns: 1fr 52px 72px 48px;
-    grid-template-rows: auto auto;
+  /* Stacked card per market — column headers don't apply, so hide the header row. */
+  .edge-header { display: none; }
+
+  .edge-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "contract contract"
+      "model    market"
+      "yes      no"
+      "badge    badge";
+    gap: 10px 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    align-items: end;
   }
-  .edge-h-edge, .edge-badge { grid-column: 1 / -1; }
+
+  .edge-label {
+    grid-area: contract;
+    white-space: normal;        /* let the contract name wrap instead of truncating */
+    overflow: visible;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .edge-label-text { white-space: normal; overflow: visible; }
+  .edge-model  { grid-area: model;  text-align: left; }
+  .edge-market { grid-area: market; text-align: left; font-size: 0.8rem; }
+  .edge-override[data-side="yes"] { grid-area: yes; }
+  .edge-override[data-side="no"]  { grid-area: no; }
+  .edge-badge  { grid-area: badge; padding: 6px 8px; }
+
+  /* Field captions for the otherwise-unlabelled cells in card view. */
+  .edge-model::before,
+  .edge-market::before,
+  .edge-override-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.6rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+  .edge-model::before  { content: "Model P"; }
+  .edge-market::before { content: "Market YES/NO"; }
+  .edge-override { display: block; }
 }

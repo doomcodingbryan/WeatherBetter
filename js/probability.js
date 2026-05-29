@@ -7,7 +7,8 @@ const SIGMA_BY_LEAD_DAYS = {
 };
 
 export function sigmaForLeadDays(leadDays) {
-  if (leadDays <= 0) return SIGMA_BY_LEAD_DAYS[0];
+  if (leadDays < 0) return null; // past settlement (stale snapshot) — no live forecast uncertainty
+  if (leadDays === 0) return SIGMA_BY_LEAD_DAYS[0];
   if (leadDays === 1) return SIGMA_BY_LEAD_DAYS[1];
   return SIGMA_BY_LEAD_DAYS[3];
 }

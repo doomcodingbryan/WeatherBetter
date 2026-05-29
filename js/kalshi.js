@@ -1,10 +1,14 @@
 const SNAPSHOT_PATH = 'data/kalshi-snapshot.json';
 
 export async function loadKalshiSnapshot() {
-  const res = await fetch(SNAPSHOT_PATH);
+  // no-store + a cache-busting query so GitHub Pages / browser caches never serve a stale snapshot.
+  const res = await fetch(`${SNAPSHOT_PATH}?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Kalshi snapshot ${res.status} — run Actions or add ${SNAPSHOT_PATH}`);
   return res.json();
 }
+
+/** Snapshot considered stale for trading once older than this many minutes. */
+export const STALE_SNAPSHOT_MINUTES = 45;
 
 /** ET date key from market occurrence / event ticker. */
 export function marketDateKey(market) {
@@ -54,4 +58,41 @@ export function groupMarketsByDate(markets) {
 export function snapshotAgeMinutes(snapshot) {
   if (!snapshot?.fetchedAt) return null;
   return (Date.now() - new Date(snapshot.fetchedAt).getTime()) / 60000;
+}
+
+function parsePrice(s) {
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Returns YES and NO ask prices guarded by order-book liquidity signals.
+ * Returns null for a side when the book signals it is illiquid:
+ *   YES ask → null when yes_bid == 0 (no real buyer; floor is a placeholder)
+ *   NO ask  → null when yes_ask_size_fp == 0 (YES at ceiling with zero supply; NO floor is a placeholder)
+ * Manual overrides bypass the guards.
+ */
+export function liquidAsks(market, manualYes, manualNo) {
+  const yesBid = parsePrice(market.yes_bid_dollars);
+  const yesSizeFp = parseFloat(market.yes_ask_size_fp);
+  const yesLiquid = yesBid != null && yesBid > 0;
+  const noLiquid = Number.isFinite(yesSizeFp) && yesSizeFp > 0;
+  return {
+    yesAsk: manualYes ?? (yesLiquid ? parsePrice(market.yes_ask_dollars) : null),
+    noAsk: manualNo ?? (noLiquid ? parsePrice(market.no_ask_dollars) : null),
+  };
+}
+
+/**
+ * True when a market has no realistically tradeable two-way book:
+ *   - no standing YES ask size (yes_ask_size_fp == 0), or
+ *   - a degenerate 1¢/100¢ ask pair (placeholder quotes, effectively resolved).
+ */
+export function isIlliquidMarket(market) {
+  const yesSizeFp = parseFloat(market.yes_ask_size_fp);
+  if (Number.isFinite(yesSizeFp) && yesSizeFp === 0) return true;
+  const yesAsk = parsePrice(market.yes_ask_dollars);
+  const noAsk = parsePrice(market.no_ask_dollars);
+  const extreme = (p) => p === 0.01 || p === 1.0;
+  return extreme(yesAsk) && extreme(noAsk);
 }

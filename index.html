@@ -14,17 +14,21 @@
 
   <main>
     <div class="tabs">
-      <button class="tab active" data-tab="forecast">Forecast</button>
-      <button class="tab" data-tab="edge">Edge finder</button>
-      <button class="refresh-btn" id="refreshBtn" type="button">↻ Refresh</button>
+      <div class="tablist" role="tablist" aria-label="Views">
+        <button class="tab active" id="tab-forecast-btn" type="button" role="tab"
+                data-tab="forecast" aria-selected="true" aria-controls="tab-forecast">Forecast</button>
+        <button class="tab" id="tab-edge-btn" type="button" role="tab"
+                data-tab="edge" aria-selected="false" aria-controls="tab-edge" tabindex="-1">Edge finder</button>
+      </div>
+      <button class="refresh-btn" id="refreshBtn" type="button"><span class="refresh-icon" aria-hidden="true">↻</span> Refresh</button>
     </div>
 
     <div class="status-bar" id="statusBar">
-      <span class="dot loading"></span>
-      <span id="statusText">Loading…</span>
+      <span class="dot loading" aria-hidden="true"></span>
+      <span id="statusText" role="status" aria-live="polite" aria-atomic="true">Loading…</span>
     </div>
 
-    <section id="tab-forecast">
+    <section id="tab-forecast" role="tabpanel" aria-labelledby="tab-forecast-btn" tabindex="0">
       <div class="metrics-grid" id="metricsGrid" style="display:none;"></div>
       <div class="card">
         <h2 class="card-title">7-day temperature · forecast high (μ)</h2>
@@ -36,13 +40,13 @@
       </div>
     </section>
 
-    <section id="tab-edge" style="display:none;">
+    <section id="tab-edge" role="tabpanel" aria-labelledby="tab-edge-btn" tabindex="0" style="display:none;">
       <div class="card">
         <h2 class="card-title">KXHIGHNY · model vs market</h2>
         <p class="helper-text">
           Model P(YES) uses forecast high μ and lead-time σ (not official NWS probabilities).
           Prices from <code>data/kalshi-snapshot.json</code> (refreshed by GitHub Actions).
-          Override YES ask in ¢ to test scenarios.
+          Override YES or NO ask in ¢ to test scenarios.
         </p>
         <div id="edgeTable"><div class="loading">Load forecast first</div></div>
       </div>

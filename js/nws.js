@@ -41,8 +41,8 @@ export function todayKeyET() {
 
 export function leadDaysET(targetDateKey) {
   const today = todayKeyET();
-  const a = new Date(today + 'T12:00:00');
-  const b = new Date(targetDateKey + 'T12:00:00');
+  const a = new Date(today + 'T00:00:00Z');
+  const b = new Date(targetDateKey + 'T00:00:00Z');
   return Math.round((b - a) / 86400000);
 }
 
@@ -76,12 +76,37 @@ export function forecastHighForDate(daytimeMap, maxTempByDate, dateKey) {
   return null;
 }
 
+/** Which source forecastHighForDate used for this date: 'period', 'grid', or null. */
+export function forecastHighSource(daytimeMap, maxTempByDate, dateKey) {
+  const entry = daytimeMap.get(dateKey);
+  if (entry?.day?.temperature != null) return 'period';
+  if (maxTempByDate.has(dateKey)) return 'grid';
+  return null;
+}
+
+/** Convert a grid temperature value to °F based on its WMO UOM label, or null if the unit is unrecognized. */
+function gridTempToF(raw, uom) {
+  switch (uom) {
+    case 'wmoUnit:degC':
+      return (raw * 9) / 5 + 32;
+    case 'wmoUnit:degF':
+      return raw;
+    case 'wmoUnit:K':
+      return ((raw - 273.15) * 9) / 5 + 32;
+    default:
+      return null;
+  }
+}
+
 function parseMaxTempByDate(gridProps) {
   const layer = gridProps.maxTemperature;
   const map = new Map();
   if (!layer?.values?.length) return map;
 
-  const isCelsius = layer.uom === 'wmoUnit:degC';
+  if (!['wmoUnit:degC', 'wmoUnit:degF', 'wmoUnit:K'].includes(layer.uom)) {
+    console.warn(`NWS maxTemperature: unrecognized uom "${layer.uom}" — skipping grid temps`);
+    return map;
+  }
 
   for (const entry of layer.values) {
     if (entry?.value == null) continue;
@@ -89,8 +114,8 @@ function parseMaxTempByDate(gridProps) {
     if (!validTime) continue;
     const start = validTime.split('/')[0];
     const key = dateKeyET(start);
-    const raw = entry.value;
-    const tempF = isCelsius ? (raw * 9) / 5 + 32 : raw;
+    const tempF = gridTempToF(entry.value, layer.uom);
+    if (tempF == null) continue;
     const prev = map.get(key);
     if (prev == null || tempF > prev) map.set(key, Math.round(tempF));
   }
