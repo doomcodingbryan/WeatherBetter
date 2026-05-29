@@ -19,6 +19,8 @@
                 data-tab="forecast" aria-selected="true" aria-controls="tab-forecast">Forecast</button>
         <button class="tab" id="tab-edge-btn" type="button" role="tab"
                 data-tab="edge" aria-selected="false" aria-controls="tab-edge" tabindex="-1">Edge finder</button>
+        <button class="tab" id="tab-calibration-btn" type="button" role="tab"
+                data-tab="calibration" aria-selected="false" aria-controls="tab-calibration" tabindex="-1">Calibration</button>
         <button class="tab" id="tab-guide-btn" type="button" role="tab"
                 data-tab="guide" aria-selected="false" aria-controls="tab-guide" tabindex="-1">Guide</button>
       </div>
@@ -66,6 +68,70 @@
           <li><strong>Signal</strong> — Buy YES/NO when edge ≥7pp and EV ≥5¢ per $1 (after fee buffer)</li>
           <li>Full walkthrough &amp; limitations in the <strong>Guide</strong> tab.</li>
         </ul>
+      </div>
+    </section>
+
+    <section id="tab-calibration" role="tabpanel" aria-labelledby="tab-calibration-btn" tabindex="0" style="display:none;">
+      <div class="card">
+        <h2 class="card-title">Model Calibration Mode</h2>
+        <div class="calibration-settings">
+          <p class="helper-text">
+            Enable <strong>Empirical Calibration</strong> to use the historical 1-year bias and lead-day sigmas
+            computed from past NWS forecasts and actual Central Park outcomes. Disabling returns the model to standard uncalibrated priors.
+          </p>
+          <label class="toggle-control">
+            <input type="checkbox" id="calibrationToggle" />
+            <span class="toggle-switch"></span>
+            <span class="toggle-label-text">Enable Empirical Calibration</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="metrics-grid" id="calibrationMetricsGrid">
+        <div class="metric-card">
+          <div class="metric-label">Model Brier Score</div>
+          <div class="metric-value" id="modelBrierVal">—</div>
+          <div class="metric-sub">Mean Squared Error (lower is better)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Kalshi Brier Score</div>
+          <div class="metric-value" id="kalshiBrierVal">—</div>
+          <div class="metric-sub">Mean Squared Error (lower is better)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Settlement Bias</div>
+          <div class="metric-value" id="calibratedBiasVal">—</div>
+          <div class="metric-sub">E[Observed − Forecast]</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Data Points</div>
+          <div class="metric-value" id="tripletsCountVal">—</div>
+          <div class="metric-sub">Matched contract-days</div>
+        </div>
+      </div>
+
+      <div class="calibration-grid">
+        <div class="card">
+          <h2 class="card-title">Calibration Curve (1-Year History)</h2>
+          <p class="helper-text">Win rates of contracts grouped into bins of implied probability. Closeness to diagonal represents better calibration.</p>
+          <div class="chart-container" id="calibrationChartContainer">
+            <!-- Dynamic SVG chart will be rendered here -->
+            <div class="loading">Loading chart…</div>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot perfect-line"></span> Perfect Calibration</span>
+            <span class="legend-item"><span class="legend-dot kalshi-line"></span> Kalshi Implied P</span>
+            <span class="legend-item"><span class="legend-dot model-line"></span> WeatherBetter Model P</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Forecast Error by Lead Time</h2>
+          <p class="helper-text">Historical standard deviation (σ) and systematic bias (μ offset) by lead day, computed from past KNYC Zone Forecasts.</p>
+          <div id="leadStatsTable">
+            <div class="loading">Loading table…</div>
+          </div>
+        </div>
       </div>
     </section>
 

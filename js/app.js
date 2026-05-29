@@ -6,6 +6,8 @@ import { evaluateEdge, formatCents, FEE_BUFFER } from './edge.js';
 const state = {
   nws: null,
   kalshi: null,
+  calibration: null,
+  useCalibration: false,
   manualPrices: {},
   loading: false,
 };
@@ -27,6 +29,7 @@ function activateTab(btn, { focus = false } = {}) {
   // Reflect the active tab in the URL hash so reload/bookmark/back preserves it (replaceState = no scroll, no history spam).
   if (location.hash !== `#${tab}`) history.replaceState(null, '', `#${tab}`);
   if (tab === 'edge') renderEdgeTable();
+  if (tab === 'calibration') renderCalibrationTable();
 }
 
 function activateTabByName(name, opts) {
@@ -79,10 +82,18 @@ async function loadAll() {
   document.getElementById('precipForecast').innerHTML = '<div class="loading">Fetching…</div>';
 
   try {
-  // Load independently so one failure doesn't blank the other (NWS down → edge tab still works from snapshot).
-  const [nwsRes, kalshiRes] = await Promise.allSettled([fetchNwsBundle(), loadKalshiSnapshot()]);
+  // Load NWS, Kalshi snapshot, and calibration data in parallel
+  const [nwsRes, kalshiRes, calRes] = await Promise.allSettled([
+    fetchNwsBundle(),
+    loadKalshiSnapshot(),
+    fetch('data/calibration-data.json').then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    }),
+  ]);
   const nwsOk = nwsRes.status === 'fulfilled';
   const kalshiOk = kalshiRes.status === 'fulfilled';
+  const calOk = calRes.status === 'fulfilled';
 
   if (nwsOk) {
     state.nws = nwsRes.value;
@@ -98,6 +109,20 @@ async function loadAll() {
 
   state.kalshi = kalshiOk ? kalshiRes.value : null;
 
+  const toggle = document.getElementById('calibrationToggle');
+  if (calOk) {
+    state.calibration = calRes.value;
+    if (toggle) toggle.disabled = false;
+  } else {
+    state.calibration = null;
+    if (toggle) {
+      toggle.disabled = true;
+      toggle.checked = false;
+    }
+    state.useCalibration = false;
+    console.warn('Calibration data file data/calibration-data.json not loaded:', calRes.reason);
+  }
+
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   if (nwsOk && kalshiOk) {
     const age = snapshotAgeMinutes(state.kalshi);
@@ -112,6 +137,7 @@ async function loadAll() {
   }
 
   if (document.getElementById('tab-edge').style.display !== 'none') renderEdgeTable();
+  if (document.getElementById('tab-calibration').style.display !== 'none') renderCalibrationTable();
   } finally {
     state.loading = false;
     refreshBtn.disabled = false;
@@ -234,9 +260,18 @@ function computeMarketEdge(market) {
   const dateKey = marketDateKey(market);
   const lead = leadDaysET(dateKey);
   const mu = hasNws ? forecastHighForDate(daytimeMap, state.nws.maxTempByDate, dateKey) : null;
-  const sigma = sigmaForLeadDays(lead);
+  
+  let sigma = sigmaForLeadDays(lead);
+  let bias = 0;
+  if (state.useCalibration && state.calibration) {
+    const calSig = state.calibration.calibratedSigmas?.[String(lead)];
+    if (calSig != null) sigma = calSig;
+    const calBias = state.calibration.calibratedBias;
+    if (calBias != null) bias = calBias;
+  }
+  
   // raw (unclamped) drives the edge so tail edges aren't suppressed; clamp is display-only.
-  const raw = mu != null && sigma != null ? modelProbYes(market, mu, sigma) : null;
+  const raw = mu != null && sigma != null ? modelProbYes(market, mu, sigma, bias) : null;
   const manual = state.manualPrices[market.ticker];
   const hasOverride = manual?.yes != null || manual?.no != null;
   // Illiquid markets have no tradeable book; a manual override re-enables scenario testing.
@@ -323,10 +358,20 @@ function renderEdgeTable() {
     const mu = hasNws ? forecastHighForDate(daytimeMap, state.nws.maxTempByDate, dateKey) : null;
     const muSrc = hasNws ? forecastHighSource(daytimeMap, state.nws.maxTempByDate, dateKey) : null;
     const lead = leadDaysET(dateKey);
-    const sigma = sigmaForLeadDays(lead);
+    
+    let sigma = sigmaForLeadDays(lead);
+    let bias = 0;
+    if (state.useCalibration && state.calibration) {
+      const calSig = state.calibration.calibratedSigmas?.[String(lead)];
+      if (calSig != null) sigma = calSig;
+      const calBias = state.calibration.calibratedBias;
+      if (calBias != null) bias = calBias;
+    }
+    
     const stale = sigma == null;
     const dayLabel = dateKey === todayKeyET() ? 'Today' : dateKey;
-    const sigmaLabel = stale ? 'stale' : `σ=${sigma}°F`;
+    const biasStr = bias !== 0 ? ` (bias ${bias > 0 ? '+' : ''}${bias}°F)` : '';
+    const sigmaLabel = stale ? 'stale' : `σ=${sigma}°F${biasStr}`;
     const beyondHorizon = hasNws && mu == null && forecastHorizon != null && dateKey > forecastHorizon;
     const muLabel = !hasNws
       ? '<span class="mu-unavailable">μ unavailable</span>'
@@ -416,6 +461,163 @@ function renderEdgeTable() {
   });
 }
 
+function renderCalibrationTable() {
+  const tableEl = document.getElementById('leadStatsTable');
+  const chartEl = document.getElementById('calibrationChartContainer');
+  
+  if (!state.calibration) {
+    if (tableEl) tableEl.innerHTML = '<div class="error">Calibration data not found. Please run the build-backtest-db script.</div>';
+    if (chartEl) chartEl.innerHTML = '<div class="error">Calibration data unavailable.</div>';
+    return;
+  }
+  
+  const cal = state.calibration;
+  
+  // Populate metrics
+  document.getElementById('modelBrierVal').textContent = cal.accuracyScores.modelBrier != null ? cal.accuracyScores.modelBrier.toFixed(4) : 'N/A';
+  document.getElementById('kalshiBrierVal').textContent = cal.accuracyScores.kalshiBrier != null ? cal.accuracyScores.kalshiBrier.toFixed(4) : 'N/A';
+  document.getElementById('calibratedBiasVal').textContent = cal.calibratedBias != null ? `${cal.calibratedBias > 0 ? '+' : ''}${cal.calibratedBias.toFixed(2)}°F` : '—';
+  document.getElementById('tripletsCountVal').textContent = cal.accuracyScores.tripletsCount != null ? cal.accuracyScores.tripletsCount : '0';
+  
+  // Render Lead Stats Table
+  let tableRows = '';
+  if (cal.errorDistributionByLead && cal.errorDistributionByLead.length) {
+    cal.errorDistributionByLead.forEach(row => {
+      tableRows += `
+        <tr>
+          <td>Day ${row.lead}</td>
+          <td>${row.priorSigma.toFixed(1)}°F</td>
+          <td class="stats-val-highlight">${row.calibratedSigma.toFixed(2)}°F</td>
+          <td>${row.bias > 0 ? '+' : ''}${row.bias.toFixed(2)}°F</td>
+          <td>${row.count}</td>
+        </tr>
+      `;
+    });
+  } else {
+    tableRows = '<tr><td colspan="5" style="text-align:center;">No lead stats available</td></tr>';
+  }
+  
+  if (tableEl) {
+    tableEl.innerHTML = `
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Lead Time</th>
+            <th>Prior σ</th>
+            <th>Calibrated σ</th>
+            <th>Calibrated Bias</th>
+            <th>Sample Size</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    `;
+  }
+  
+  // Render SVG Calibration Curve
+  if (chartEl && cal.calibrationCurve && cal.calibrationCurve.length) {
+    const curve = cal.calibrationCurve;
+    
+    const paddingLeft = 35;
+    const paddingRight = 10;
+    const paddingTop = 15;
+    const paddingBottom = 25;
+    
+    const plotWidth = 320 - paddingLeft - paddingRight; // 275
+    const plotHeight = 240 - paddingTop - paddingBottom; // 200
+    
+    const mapCoords = (prob, winRate) => {
+      const x = paddingLeft + (prob / 100.0) * plotWidth;
+      const y = (240 - paddingBottom) - (winRate * plotHeight);
+      return { x: x.toFixed(1), y: y.toFixed(1) };
+    };
+    
+    // Draw grid lines and labels
+    let gridLinesSvg = '';
+    for (let pct = 0; pct <= 100; pct += 20) {
+      const { x, y } = mapCoords(pct, pct / 100.0);
+      
+      // Horizontal grid line (const y)
+      gridLinesSvg += `<line class="chart-axis-line" x1="${paddingLeft}" y1="${y}" x2="${320 - paddingRight}" y2="${y}" style="stroke: rgba(255,255,255,0.05);" />`;
+      // Vertical grid line (const x)
+      gridLinesSvg += `<line class="chart-axis-line" x1="${x}" y1="${paddingTop}" x2="${x}" y2="${240 - paddingBottom}" style="stroke: rgba(255,255,255,0.05);" />`;
+      
+      // Axis labels
+      gridLinesSvg += `<text class="chart-axis-text" x="${paddingLeft - 5}" y="${parseFloat(y) + 3}" text-anchor="end">${pct}%</text>`;
+      gridLinesSvg += `<text class="chart-axis-text" x="${x}" y="${240 - paddingBottom + 12}" text-anchor="middle">${pct}%</text>`;
+    }
+    
+    // Perfect line path (y = x)
+    const pStart = mapCoords(0, 0);
+    const pEnd = mapCoords(100, 1.0);
+    const perfectPath = `M ${pStart.x},${pStart.y} L ${pEnd.x},${pEnd.y}`;
+    
+    // Generate Kalshi curve points & path
+    let kalshiPointsSvg = '';
+    let kalshiPath = '';
+    let firstKalshi = true;
+    
+    curve.forEach(b => {
+      if (b.kalshiWinRate != null) {
+        const { x, y } = mapCoords(b.midpoint, b.kalshiWinRate);
+        kalshiPointsSvg += `<circle class="chart-dot kalshi" cx="${x}" cy="${y}" r="3"><title>Kalshi ${b.bucket}: ${Math.round(b.kalshiWinRate * 100)}% (${b.kalshiCount} contracts)</title></circle>`;
+        
+        if (firstKalshi) {
+          kalshiPath += `M ${x},${y}`;
+          firstKalshi = false;
+        } else {
+          kalshiPath += ` L ${x},${y}`;
+        }
+      }
+    });
+    
+    // Generate Model curve points & path
+    let modelPointsSvg = '';
+    let modelPath = '';
+    let firstModel = true;
+    
+    curve.forEach(b => {
+      if (b.modelWinRate != null) {
+        const { x, y } = mapCoords(b.midpoint, b.modelWinRate);
+        modelPointsSvg += `<circle class="chart-dot model" cx="${x}" cy="${y}" r="3"><title>Model ${b.bucket}: ${Math.round(b.modelWinRate * 100)}% (${b.modelCount} contracts)</title></circle>`;
+        
+        if (firstModel) {
+          modelPath += `M ${x},${y}`;
+          firstModel = false;
+        } else {
+          modelPath += ` L ${x},${y}`;
+        }
+      }
+    });
+    
+    chartEl.innerHTML = `
+      <svg viewBox="0 0 320 240">
+        <!-- Axes -->
+        <line class="chart-axis-line" x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${240 - paddingBottom}" />
+        <line class="chart-axis-line" x1="${paddingLeft}" y1="${240 - paddingBottom}" x2="${320 - paddingRight}" y2="${240 - paddingBottom}" />
+        
+        <!-- Grid and labels -->
+        ${gridLinesSvg}
+        
+        <!-- Perfect calibration line -->
+        <path class="chart-line perfect" d="${perfectPath}" />
+        
+        <!-- Kalshi calibration line -->
+        ${kalshiPath ? `<path class="chart-line kalshi" d="${kalshiPath}" />` : ''}
+        
+        <!-- Model calibration line -->
+        ${modelPath ? `<path class="chart-line model" d="${modelPath}" />` : ''}
+        
+        <!-- Points -->
+        ${kalshiPointsSvg}
+        ${modelPointsSvg}
+      </svg>
+    `;
+  }
+}
+
 const manualPriceTimers = {};
 
 function onManualPrice(e) {
@@ -464,6 +666,17 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// Register toggle event
+const toggleEl = document.getElementById('calibrationToggle');
+if (toggleEl) {
+  toggleEl.addEventListener('change', (e) => {
+    state.useCalibration = e.target.checked;
+    if (document.getElementById('tab-edge').style.display !== 'none') {
+      renderEdgeTable();
+    }
+  });
 }
 
 loadAll();

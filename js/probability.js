@@ -16,8 +16,15 @@ const SIGMA_BY_LEAD_DAYS = {
   3: 3.5,
 };
 
-export function sigmaForLeadDays(leadDays) {
+export function sigmaForLeadDays(leadDays, customSigmas = null) {
   if (leadDays < 0) return null; // past settlement (stale snapshot) — no live forecast uncertainty
+  if (customSigmas && customSigmas[leadDays] != null) {
+    return customSigmas[leadDays];
+  }
+  // If customSigmas is provided as an object but string keys (e.g. from JSON)
+  if (customSigmas && customSigmas[String(leadDays)] != null) {
+    return customSigmas[String(leadDays)];
+  }
   if (leadDays === 0) return SIGMA_BY_LEAD_DAYS[0];
   if (leadDays === 1) return SIGMA_BY_LEAD_DAYS[1];
   return SIGMA_BY_LEAD_DAYS[3];
@@ -38,6 +45,10 @@ export function normalCdf(x) {
 /**
  * P(T > strike) for strict "greater than strike" (integer °F).
  * Continuity correction: P(T > 85) ≈ P(Z > (85.5 - μ) / σ).
+ *
+ * @param {number} mu
+ * @param {number} sigma
+ * @param {number} strike
  */
 export function probGreaterThan(mu, sigma, strike) {
   if (sigma <= 0) return mu > strike ? 1 : 0;
@@ -45,14 +56,25 @@ export function probGreaterThan(mu, sigma, strike) {
   return 1 - normalCdf(z);
 }
 
-/** P(T < cap) for strict "less than cap". */
+/** P(T < cap) for strict "less than cap".
+ *
+ * @param {number} mu
+ * @param {number} sigma
+ * @param {number} cap
+ */
 export function probLessThan(mu, sigma, cap) {
   if (sigma <= 0) return mu < cap ? 1 : 0;
   const z = (cap - 0.5 - mu) / sigma;
   return normalCdf(z);
 }
 
-/** P(low ≤ T ≤ high) for inclusive integer degree brackets (e.g. 84–85°F). */
+/** P(low ≤ T ≤ high) for inclusive integer degree brackets (e.g. 84–85°F).
+ *
+ * @param {number} mu
+ * @param {number} sigma
+ * @param {number} low
+ * @param {number} high
+ */
 export function probBetweenInclusive(mu, sigma, low, high) {
   if (sigma <= 0) return mu >= low && mu <= high ? 1 : 0;
   const zHi = (high + 0.5 - mu) / sigma;
@@ -73,11 +95,14 @@ export function probBetweenInclusive(mu, sigma, low, high) {
  * yields P(T≥85) instead of P(T≥86) — an off-by-one that still sums to ~1 across the ladder.
  *
  * @param {{ strike_type?: string, floor_strike?: number|null, cap_strike?: number|null }} market
+ * @param {number} mu
+ * @param {number} sigma
+ * @param {number} bias
  */
-export function modelProbYes(market, mu, sigma) {
+export function modelProbYes(market, mu, sigma, bias = SETTLEMENT_BIAS) {
   const type = market.strike_type;
   // Center the model on the bias-adjusted forecast (μ is the raw forecast high; settlement may run offset).
-  const muAdj = mu + SETTLEMENT_BIAS;
+  const muAdj = mu + bias;
   if (type === 'greater' && market.floor_strike != null) {
     return probGreaterThan(muAdj, sigma, market.floor_strike);
   }

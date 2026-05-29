@@ -1,0 +1,159 @@
+{
+  "generatedAt": "2026-05-29T06:52:57Z",
+  "calibratedBias": 1.59,
+  "calibratedSigmas": {
+    "0": 3.81,
+    "1": 3.96,
+    "2": 4.25,
+    "3": 4.7,
+    "4": 4.96,
+    "5": 5.38,
+    "6": 6.42,
+    "7": 6.0
+  },
+  "errorDistributionByLead": [
+    {
+      "lead": 0,
+      "bias": 1.558,
+      "priorSigma": 2.0,
+      "calibratedSigma": 3.808,
+      "count": 303
+    },
+    {
+      "lead": 1,
+      "bias": 1.733,
+      "priorSigma": 2.5,
+      "calibratedSigma": 3.964,
+      "count": 430
+    },
+    {
+      "lead": 2,
+      "bias": 1.685,
+      "priorSigma": 3.5,
+      "calibratedSigma": 4.251,
+      "count": 426
+    },
+    {
+      "lead": 3,
+      "bias": 1.388,
+      "priorSigma": 3.5,
+      "calibratedSigma": 4.697,
+      "count": 425
+    },
+    {
+      "lead": 4,
+      "bias": 1.282,
+      "priorSigma": 3.5,
+      "calibratedSigma": 4.963,
+      "count": 426
+    },
+    {
+      "lead": 5,
+      "bias": 1.436,
+      "priorSigma": 3.5,
+      "calibratedSigma": 5.375,
+      "count": 425
+    },
+    {
+      "lead": 6,
+      "bias": 1.728,
+      "priorSigma": 3.5,
+      "calibratedSigma": 6.417,
+      "count": 426
+    },
+    {
+      "lead": 7,
+      "bias": 2.163,
+      "priorSigma": 3.5,
+      "calibratedSigma": 5.999,
+      "count": 227
+    }
+  ],
+  "calibrationCurve": [
+    {
+      "bucket": "0-10%",
+      "midpoint": 5,
+      "kalshiWinRate": 0.024,
+      "kalshiCount": 1557,
+      "modelWinRate": 0.107,
+      "modelCount": 1482
+    },
+    {
+      "bucket": "10-20%",
+      "midpoint": 15,
+      "kalshiWinRate": 0.134,
+      "kalshiCount": 538,
+      "modelWinRate": 0.132,
+      "modelCount": 713
+    },
+    {
+      "bucket": "20-30%",
+      "midpoint": 25,
+      "kalshiWinRate": 0.188,
+      "kalshiCount": 432,
+      "modelWinRate": 0.198,
+      "modelCount": 293
+    },
+    {
+      "bucket": "30-40%",
+      "midpoint": 35,
+      "kalshiWinRate": 0.265,
+      "kalshiCount": 377,
+      "modelWinRate": 0.281,
+      "modelCount": 707
+    },
+    {
+      "bucket": "40-50%",
+      "midpoint": 45,
+      "kalshiWinRate": 0.495,
+      "kalshiCount": 190,
+      "modelWinRate": 0.088,
+      "modelCount": 57
+    },
+    {
+      "bucket": "50-60%",
+      "midpoint": 55,
+      "kalshiWinRate": 0.602,
+      "kalshiCount": 93,
+      "modelWinRate": 0.4,
+      "modelCount": 5
+    },
+    {
+      "bucket": "60-70%",
+      "midpoint": 65,
+      "kalshiWinRate": 0.648,
+      "kalshiCount": 54,
+      "modelWinRate": 0.286,
+      "modelCount": 14
+    },
+    {
+      "bucket": "70-80%",
+      "midpoint": 75,
+      "kalshiWinRate": 0.762,
+      "kalshiCount": 21,
+      "modelWinRate": 0.5,
+      "modelCount": 18
+    },
+    {
+      "bucket": "80-90%",
+      "midpoint": 85,
+      "kalshiWinRate": 0.909,
+      "kalshiCount": 33,
+      "modelWinRate": 1.0,
+      "modelCount": 1
+    },
+    {
+      "bucket": "90-100%",
+      "midpoint": 95,
+      "kalshiWinRate": 0.943,
+      "kalshiCount": 35,
+      "modelWinRate": 0.6,
+      "modelCount": 40
+    }
+  ],
+  "accuracyScores": {
+    "kalshiBrier": 0.0995,
+    "modelBrier": 0.1379,
+    "tripletsCount": 3330
+  }
+}
