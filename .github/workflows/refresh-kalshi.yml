@@ -1,0 +1,51 @@
+name: Refresh Kalshi snapshot
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch KXHIGHNY markets
+        run: |
+          curl -sS "https://api.elections.kalshi.com/trade-api/v2/markets?series_ticker=KXHIGHNY&status=open&limit=200" \
+            -o /tmp/kalshi-raw.json
+          python3 << 'PY'
+          import json
+          from datetime import datetime, timezone
+
+          with open("/tmp/kalshi-raw.json") as f:
+              raw = json.load(f)
+
+          out = {
+              "fetchedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "series": "KXHIGHNY",
+              "markets": raw.get("markets", []),
+              "cursor": raw.get("cursor"),
+          }
+
+          path = "data/kalshi-snapshot.json"
+          with open(path, "w") as f:
+              json.dump(out, f, indent=2)
+          print(f"Wrote {len(out['markets'])} markets to {path}")
+          PY
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/kalshi-snapshot.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: refresh Kalshi KXHIGHNY snapshot"
+            git push
+          fi

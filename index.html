@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeatherBetter — NYC × Kalshi</title>
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+  <header>
+    <h1>WeatherBetter</h1>
+    <p class="subtitle">NWS forecast · KXHIGHNY edges · Central Park (KNYC)</p>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button class="tab active" data-tab="forecast">Forecast</button>
+      <button class="tab" data-tab="edge">Edge finder</button>
+      <button class="refresh-btn" id="refreshBtn" type="button">↻ Refresh</button>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <span class="dot loading"></span>
+      <span id="statusText">Loading…</span>
+    </div>
+
+    <section id="tab-forecast">
+      <div class="metrics-grid" id="metricsGrid" style="display:none;"></div>
+      <div class="card">
+        <h2 class="card-title">7-day temperature · forecast high (μ)</h2>
+        <div id="tempForecast"><div class="loading">Fetching…</div></div>
+      </div>
+      <div class="card">
+        <h2 class="card-title">Precipitation probability (NWS POP)</h2>
+        <div id="precipForecast"><div class="loading">Fetching…</div></div>
+      </div>
+    </section>
+
+    <section id="tab-edge" style="display:none;">
+      <div class="card">
+        <h2 class="card-title">KXHIGHNY · model vs market</h2>
+        <p class="helper-text">
+          Model P(YES) uses forecast high μ and lead-time σ (not official NWS probabilities).
+          Prices from <code>data/kalshi-snapshot.json</code> (refreshed by GitHub Actions).
+          Override YES ask in ¢ to test scenarios.
+        </p>
+        <div id="edgeTable"><div class="loading">Load forecast first</div></div>
+      </div>
+      <div class="card info-card">
+        <h2 class="card-title">How to read this</h2>
+        <ul>
+          <li><strong>Model P</strong> — P(YES) from Normal(μ, σ) vs Kalshi strike rules (strict &gt;/&lt;)</li>
+          <li><strong>μ</strong> — NWS daytime forecast high; settlement is KNYC Daily Climate Report max</li>
+          <li><strong>σ</strong> — 2.0°F day-of, 2.5°F (+1d), 3.5°F (+2–3d) forecast error prior</li>
+          <li><strong>Signal</strong> — Buy YES/NO when edge ≥7pp and EV ≥5¢ per $1 (after fee buffer)</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      <a href="https://api.weather.gov" target="_blank" rel="noopener">NWS API</a> ·
+      <a href="https://kalshi.com/markets/kxhighny" target="_blank" rel="noopener">Kalshi KXHIGHNY</a> ·
+      Not financial advice
+    </p>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
