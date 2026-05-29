@@ -41,6 +41,14 @@ export function probLessThan(mu, sigma, cap) {
   return normalCdf(z);
 }
 
+/** P(low ≤ T ≤ high) for inclusive integer degree brackets (e.g. 84–85°F). */
+export function probBetweenInclusive(mu, sigma, low, high) {
+  if (sigma <= 0) return mu >= low && mu <= high ? 1 : 0;
+  const zHi = (high + 0.5 - mu) / sigma;
+  const zLo = (low - 0.5 - mu) / sigma;
+  return normalCdf(zHi) - normalCdf(zLo);
+}
+
 /**
  * Model P(YES) for a KXHIGHNY market given forecast high μ (°F).
  * @param {{ strike_type?: string, floor_strike?: number|null, cap_strike?: number|null }} market
@@ -52,6 +60,13 @@ export function modelProbYes(market, mu, sigma) {
   }
   if (type === 'less' && market.cap_strike != null) {
     return probLessThan(mu, sigma, market.cap_strike);
+  }
+  if (
+    type === 'between' &&
+    market.floor_strike != null &&
+    market.cap_strike != null
+  ) {
+    return probBetweenInclusive(mu, sigma, market.floor_strike, market.cap_strike);
   }
   return null;
 }

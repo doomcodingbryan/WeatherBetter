@@ -81,13 +81,16 @@ function parseMaxTempByDate(gridProps) {
   const map = new Map();
   if (!layer?.values?.length) return map;
 
-  for (let i = 0; i < layer.values.length; i++) {
-    const value = layer.values[i];
-    if (value == null) continue;
-    const validTime = layer.validTimes[i];
+  const isCelsius = layer.uom === 'wmoUnit:degC';
+
+  for (const entry of layer.values) {
+    if (entry?.value == null) continue;
+    const validTime = entry.validTime ?? entry.valid_time;
+    if (!validTime) continue;
     const start = validTime.split('/')[0];
     const key = dateKeyET(start);
-    const tempF = layer.uom === 'wmoUnit:degC' ? (value * 9) / 5 + 32 : value;
+    const raw = entry.value;
+    const tempF = isCelsius ? (raw * 9) / 5 + 32 : raw;
     const prev = map.get(key);
     if (prev == null || tempF > prev) map.set(key, Math.round(tempF));
   }

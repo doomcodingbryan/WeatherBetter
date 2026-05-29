@@ -20,7 +20,7 @@ Settlement uses the NWS **Daily Climate Report** max at Central Park ([KNYC](htt
    - 0 days: 2.0°F  
    - 1 day: 2.5°F  
    - 2+ days: 3.5°F  
-3. **P(YES)** — Normal(μ, σ) with strict strike rules (`greater` / `less` per Kalshi `rules_primary`).
+3. **P(YES)** — Normal(μ, σ) with Kalshi strike rules (`greater`, `less`, inclusive `between` brackets).
 4. **Signal** — flag Buy YES/NO when model vs executable ask differs by ≥7pp and estimated EV ≥5¢ per $1 after a 2¢ fee buffer.
 
 This is a **transparent heuristic**, not calibrated to historical KNYC errors. Use at your own risk.
@@ -38,9 +38,10 @@ python3 -m http.server 8080
 Refresh Kalshi snapshot manually:
 
 ```bash
-curl -sS "https://api.elections.kalshi.com/trade-api/v2/markets?series_ticker=KXHIGHNY&status=open&limit=200" \
-  | python3 -c "import json,sys,datetime; d=json.load(sys.stdin); json.dump({'fetchedAt':datetime.datetime.utcnow().isoformat()+'Z','series':'KXHIGHNY','markets':d.get('markets',[])}, open('data/kalshi-snapshot.json','w'), indent=2)"
+./scripts/refresh-kalshi-snapshot.sh
 ```
+
+Commit `data/kalshi-snapshot.json` so GitHub Pages can load prices (the Kalshi API blocks browser calls from `*.github.io`).
 
 ## Project layout
 
