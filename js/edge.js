@@ -2,7 +2,7 @@
 export const FEE_BUFFER = 0.02;
 
 /** Minimum |model − market| edge to highlight (percentage points). */
-export const EDGE_THRESHOLD_PP = 7;
+export const EDGE_THRESHOLD_PP = 10;
 
 /** Minimum EV per $1 contract to flag (after fee buffer). */
 export const EV_THRESHOLD = 0.05;

@@ -19,6 +19,8 @@
                 data-tab="forecast" aria-selected="true" aria-controls="tab-forecast">Forecast</button>
         <button class="tab" id="tab-edge-btn" type="button" role="tab"
                 data-tab="edge" aria-selected="false" aria-controls="tab-edge" tabindex="-1">Edge finder</button>
+        <button class="tab" id="tab-calibration-btn" type="button" role="tab"
+                data-tab="calibration" aria-selected="false" aria-controls="tab-calibration" tabindex="-1">Calibration</button>
         <button class="tab" id="tab-guide-btn" type="button" role="tab"
                 data-tab="guide" aria-selected="false" aria-controls="tab-guide" tabindex="-1">Guide</button>
       </div>
@@ -45,7 +47,7 @@
     <section id="tab-edge" role="tabpanel" aria-labelledby="tab-edge-btn" tabindex="0" style="display:none;">
       <div class="card">
         <h2 class="card-title">Recommended bets</h2>
-        <p class="helper-text">Contracts where the model sees an actionable edge (≥7pp &amp; ≥5¢ EV), ranked by expected value.</p>
+        <p class="helper-text">Contracts where the model sees an actionable edge (≥10pp &amp; ≥5¢ EV), ranked by expected value.</p>
         <div id="recommendedBets"><div class="loading">Load forecast first</div></div>
       </div>
       <div class="card">
@@ -62,10 +64,72 @@
         <ul>
           <li><strong>Model P</strong> — P(YES) from Normal(μ, σ) vs Kalshi strike rules (strict &gt;/&lt;)</li>
           <li><strong>μ</strong> — NWS daytime forecast high; settlement is KNYC Daily Climate Report max</li>
-          <li><strong>σ</strong> — 2.0°F day-of, 2.5°F (+1d), then flat 3.5°F for all leads ≥2d (uncalibrated)</li>
-          <li><strong>Signal</strong> — Buy YES/NO when edge ≥7pp and EV ≥5¢ per $1 (after fee buffer)</li>
-          <li>Full walkthrough &amp; limitations in the <strong>Guide</strong> tab.</li>
+          <li><strong>σ / bias</strong> — uncalibrated priors (2.0–3.5°F) unless <strong>Calibration</strong> tab is enabled; empirical values range 3.8–6.4°F with +1.6°F bias</li>
+          <li><strong>Signal</strong> — Buy YES/NO when edge ≥10pp and EV ≥5¢ per $1 (after fee buffer)</li>
+          <li>Enable empirical calibration in the <strong>Calibration</strong> tab for historically-fit σ and bias.</li>
         </ul>
+      </div>
+    </section>
+
+    <section id="tab-calibration" role="tabpanel" aria-labelledby="tab-calibration-btn" tabindex="0" style="display:none;">
+      <div class="card">
+        <h2 class="card-title">Model calibration</h2>
+        <div class="calibration-settings">
+          <p class="helper-text">
+            Enable <strong>Empirical Calibration</strong> to replace the default priors with values fit to
+            ~5 months of KXHIGHNY history (Jan–May 2026). Calibrated σ values are 1.5–3× larger than the priors
+            and grow with lead time; bias of +1.59°F corrects the systematic gap between NWS forecast highs and
+            official KNYC settlement values.
+          </p>
+          <label class="toggle-control">
+            <input type="checkbox" id="calibrationToggle" disabled />
+            <span class="toggle-switch"></span>
+            <span class="toggle-label-text">Enable Empirical Calibration</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="metrics-grid" id="calibrationMetricsGrid">
+        <div class="metric-card">
+          <div class="metric-label">Model Brier Score</div>
+          <div class="metric-value" id="modelBrierVal">—</div>
+          <div class="metric-sub">MSE (lower = better)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Kalshi Brier Score</div>
+          <div class="metric-value" id="kalshiBrierVal">—</div>
+          <div class="metric-sub">MSE (lower = better)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Settlement Bias</div>
+          <div class="metric-value" id="calibratedBiasVal">—</div>
+          <div class="metric-sub" id="calibratedBiasSub">E[Observed − Forecast]</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Data Points</div>
+          <div class="metric-value" id="tripletsCountVal">—</div>
+          <div class="metric-sub">Matched contract-days</div>
+        </div>
+      </div>
+
+      <div class="calibration-grid">
+        <div class="card">
+          <h2 class="card-title">Calibration curve (historical)</h2>
+          <p class="helper-text">Win rate vs implied probability — perfect calibration follows the diagonal.</p>
+          <div class="chart-container" id="calibrationChartContainer">
+            <div class="loading">Loading…</div>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot perfect-line"></span> Perfect</span>
+            <span class="legend-item"><span class="legend-dot kalshi-line"></span> Kalshi implied P</span>
+            <span class="legend-item"><span class="legend-dot model-line"></span> Model P (priors)</span>
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">Forecast error by lead time</h2>
+          <p class="helper-text">Historical σ and systematic bias by lead day, derived from past KNYC zone forecasts.</p>
+          <div id="leadStatsTable"><div class="loading">Loading…</div></div>
+        </div>
       </div>
     </section>
 
@@ -116,7 +180,7 @@
         <h2 class="card-title">Edge finder — date headers &amp; badges</h2>
         <ul>
           <li><strong>Date header</strong> — shows μ, its source (<em>period</em> = NWS daytime forecast, <em>grid</em> = gridded-max fallback), σ, and lead days. “<em>μ unavailable</em>” = NWS down; “<em>beyond forecast horizon</em>” = date past the ~7-day NWS reach.</li>
-          <li><strong>Buy YES / Buy NO</strong> — edge ≥7pp <em>and</em> EV ≥5¢ per $1 after the 2¢ fee buffer.</li>
+          <li><strong>Buy YES / Buy NO</strong> — edge ≥10pp <em>and</em> EV ≥5¢ per $1 after the 2¢ fee buffer.</li>
           <li><strong>No edge</strong> — model and market roughly agree, or the edge is too small.</li>
           <li><strong>Illiquid</strong> — no tradeable two-way book (grayed out). Enter an override to test it anyway.</li>
           <li><strong>Stale</strong> — settlement date is in the past (from a stale snapshot).</li>
@@ -130,16 +194,16 @@
           <li><strong>μ</strong> — NWS daytime forecast high for the date (°F). Settlement is the official KNYC Daily Climate Report max.</li>
           <li><strong>σ</strong> — forecast-error spread by lead time: 2.0°F day-of, 2.5°F (+1d), 3.5°F (2d+).</li>
           <li><strong>P(YES)</strong> — treats the high as Normal(μ, σ) and computes each contract’s strike probability, with a ±0.5°F continuity correction (temps settle in whole degrees). Three rule types: <code>greater</code>, <code>less</code>, inclusive <code>between</code>.</li>
-          <li><strong>Signal</strong> — compares model P(YES) to the market ask; flags a buy when edge ≥7pp <em>and</em> EV ≥5¢ per $1 after a 2¢ fee/spread buffer.</li>
+          <li><strong>Signal</strong> — compares model P(YES) to the market ask; flags a buy when edge ≥10pp <em>and</em> EV ≥5¢ per $1 after a 2¢ fee/spread buffer.</li>
         </ol>
       </div>
 
       <div class="card info-card">
         <h2 class="card-title">Known limitations — read before trusting a signal</h2>
         <ul>
-          <li><strong>Not calibrated</strong> — σ values are reasonable priors, not fit to historical KNYC forecast errors.</li>
-          <li><strong>Long-lead overconfidence</strong> — σ is flat 3.5°F for all leads ≥2d, but real error grows to ~5–6°F by day 7, so 4–7d signals can be <em>phantom edges</em>. Treat them with extra skepticism.</li>
-          <li><strong>μ bias not modeled</strong> — the model assumes the forecast high equals the official max on average; any systematic sensor/rounding offset isn’t corrected (tunable via <code>SETTLEMENT_BIAS</code>, default 0).</li>
+          <li><strong>Priors are uncalibrated by default</strong> — enable the <strong>Calibration</strong> tab toggle to use historically-fit σ (3.8–6.4°F) and +1.59°F bias. With priors on, long-lead signals are overconfident.</li>
+          <li><strong>Long-lead overconfidence (priors only)</strong> — prior σ is flat 3.5°F for leads ≥2d; real error grows to ~6°F by day 7. Calibrated σ fixes this.</li>
+          <li><strong>Calibration window</strong> — fitted on Jan–May 2026; may not generalize to summer/winter temperature ranges where forecast behavior differs.</li>
           <li><strong>Per-contract pricing</strong> — each contract is scored independently. A complete strike ladder sums to ~100%, but a partial snapshot won’t, and cross-date correlation isn’t modeled.</li>
           <li><strong>Buy-only</strong> — signals evaluate <em>buying</em> at the ask. Exiting an existing position fills at the bid and isn’t modeled.</li>
         </ul>

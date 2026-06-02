@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2026-05-30T01:07:04Z",
+  "calibratedBias": 1.65,
+  "monthlyBias": {
+    "1": 1.64,
+    "2": 1.64,
+    "3": 1.68
+  },
+  "tailNu": 9.5,
+  "calibratedSigmas": {
+    "0": 3.64,
+    "1": 3.74,
+    "2": 3.69,
+    "3": 4.42,
+    "4": 4.7,
+    "5": 5.49,
+    "6": 5.83,
+    "7": 5.92
+  },
+  "errorDistributionByLead": [
+    {
+      "lead": 0,
+      "bias": 1.493,
+      "priorSigma": 2.0,
+      "calibratedSigma": 3.644,
+      "count": 75
+    },
+    {
+      "lead": 1,
+      "bias": 1.36,
+      "priorSigma": 2.5,
+      "calibratedSigma": 3.744,
+      "count": 75
+    },
+    {
+      "lead": 2,
+      "bias": 1.187,
+      "priorSigma": 3.5,
+      "calibratedSigma": 3.686,
+      "count": 75
+    },
+    {
+      "lead": 3,
+      "bias": 1.547,
+      "priorSigma": 3.5,
+      "calibratedSigma": 4.421,
+      "count": 75
+    },
+    {
+      "lead": 4,
+      "bias": 1.453,
+      "priorSigma": 3.5,
+      "calibratedSigma": 4.697,
+      "count": 75
+    },
+    {
+      "lead": 5,
+      "bias": 1.833,
+      "priorSigma": 3.5,
+      "calibratedSigma": 5.487,
+      "count": 75
+    },
+    {
+      "lead": 6,
+      "bias": 2.08,
+      "priorSigma": 3.5,
+      "calibratedSigma": 5.83,
+      "count": 75
+    },
+    {
+      "lead": 7,
+      "bias": 2.267,
+      "priorSigma": 3.5,
+      "calibratedSigma": 5.917,
+      "count": 75
+    }
+  ],
+  "calibrationCurve": [
+    {
+      "bucket": "0-10%",
+      "midpoint": 5,
+      "kalshiWinRate": 0.015,
+      "kalshiCount": 133,
+      "modelWinRate": 0.1,
+      "modelCount": 60
+    },
+    {
+      "bucket": "10-20%",
+      "midpoint": 15,
+      "kalshiWinRate": 0.123,
+      "kalshiCount": 114,
+      "modelWinRate": 0.149,
+      "modelCount": 235
+    },
+    {
+      "bucket": "20-30%",
+      "midpoint": 25,
+      "kalshiWinRate": 0.24,
+      "kalshiCount": 96,
+      "modelWinRate": 0.228,
+      "modelCount": 136
+    },
+    {
+      "bucket": "30-40%",
+      "midpoint": 35,
+      "kalshiWinRate": 0.31,
+      "kalshiCount": 84,
+      "modelWinRate": 0.0,
+      "modelCount": 6
+    },
+    {
+      "bucket": "40-50%",
+      "midpoint": 45,
+      "kalshiWinRate": 0.412,
+      "kalshiCount": 17,
+      "modelWinRate": 0.0,
+      "modelCount": 7
+    },
+    {
+      "bucket": "50-60%",
+      "midpoint": 55,
+      "kalshiWinRate": 0.5,
+      "kalshiCount": 4,
+      "modelWinRate": 0.0,
+      "modelCount": 2
+    },
+    {
+      "bucket": "60-70%",
+      "midpoint": 65,
+      "kalshiWinRate": 0.5,
+      "kalshiCount": 2,
+      "modelWinRate": 1.0,
+      "modelCount": 1
+    },
+    {
+      "bucket": "70-80%",
+      "midpoint": 75,
+      "kalshiWinRate": null,
+      "kalshiCount": 0,
+      "modelWinRate": null,
+      "modelCount": 0
+    },
+    {
+      "bucket": "80-90%",
+      "midpoint": 85,
+      "kalshiWinRate": null,
+      "kalshiCount": 0,
+      "modelWinRate": 0.5,
+      "modelCount": 2
+    },
+    {
+      "bucket": "90-100%",
+      "midpoint": 95,
+      "kalshiWinRate": null,
+      "kalshiCount": 0,
+      "modelWinRate": 1.0,
+      "modelCount": 1
+    }
+  ],
+  "accuracyScores": {
+    "kalshiBrier": 0.1231,
+    "modelBrier": 0.1401,
+    "tripletsCount": 450
+  }
+}
