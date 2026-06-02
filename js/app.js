@@ -478,6 +478,163 @@ function renderEdgeTable() {
   });
 }
 
+function renderCalibrationTable() {
+  const tableEl = document.getElementById('leadStatsTable');
+  const chartEl = document.getElementById('calibrationChartContainer');
+  
+  if (!state.calibration) {
+    if (tableEl) tableEl.innerHTML = '<div class="error">Calibration data not found. Please run the build-backtest-db script.</div>';
+    if (chartEl) chartEl.innerHTML = '<div class="error">Calibration data unavailable.</div>';
+    return;
+  }
+  
+  const cal = state.calibration;
+  
+  // Populate metrics
+  document.getElementById('modelBrierVal').textContent = cal.accuracyScores.modelBrier != null ? cal.accuracyScores.modelBrier.toFixed(4) : 'N/A';
+  document.getElementById('kalshiBrierVal').textContent = cal.accuracyScores.kalshiBrier != null ? cal.accuracyScores.kalshiBrier.toFixed(4) : 'N/A';
+  document.getElementById('calibratedBiasVal').textContent = cal.calibratedBias != null ? `${cal.calibratedBias > 0 ? '+' : ''}${cal.calibratedBias.toFixed(2)}°F` : '—';
+  document.getElementById('tripletsCountVal').textContent = cal.accuracyScores.tripletsCount != null ? cal.accuracyScores.tripletsCount : '0';
+  
+  // Render Lead Stats Table
+  let tableRows = '';
+  if (cal.errorDistributionByLead && cal.errorDistributionByLead.length) {
+    cal.errorDistributionByLead.forEach(row => {
+      tableRows += `
+        <tr>
+          <td>Day ${row.lead}</td>
+          <td>${row.priorSigma.toFixed(1)}°F</td>
+          <td class="stats-val-highlight">${row.calibratedSigma.toFixed(2)}°F</td>
+          <td>${row.bias > 0 ? '+' : ''}${row.bias.toFixed(2)}°F</td>
+          <td>${row.count}</td>
+        </tr>
+      `;
+    });
+  } else {
+    tableRows = '<tr><td colspan="5" style="text-align:center;">No lead stats available</td></tr>';
+  }
+  
+  if (tableEl) {
+    tableEl.innerHTML = `
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Lead Time</th>
+            <th>Prior σ</th>
+            <th>Calibrated σ</th>
+            <th>Calibrated Bias</th>
+            <th>Sample Size</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    `;
+  }
+  
+  // Render SVG Calibration Curve
+  if (chartEl && cal.calibrationCurve && cal.calibrationCurve.length) {
+    const curve = cal.calibrationCurve;
+    
+    const paddingLeft = 35;
+    const paddingRight = 10;
+    const paddingTop = 15;
+    const paddingBottom = 25;
+    
+    const plotWidth = 320 - paddingLeft - paddingRight; // 275
+    const plotHeight = 240 - paddingTop - paddingBottom; // 200
+    
+    const mapCoords = (prob, winRate) => {
+      const x = paddingLeft + (prob / 100.0) * plotWidth;
+      const y = (240 - paddingBottom) - (winRate * plotHeight);
+      return { x: x.toFixed(1), y: y.toFixed(1) };
+    };
+    
+    // Draw grid lines and labels
+    let gridLinesSvg = '';
+    for (let pct = 0; pct <= 100; pct += 20) {
+      const { x, y } = mapCoords(pct, pct / 100.0);
+      
+      // Horizontal grid line (const y)
+      gridLinesSvg += `<line class="chart-axis-line" x1="${paddingLeft}" y1="${y}" x2="${320 - paddingRight}" y2="${y}" style="stroke: rgba(255,255,255,0.05);" />`;
+      // Vertical grid line (const x)
+      gridLinesSvg += `<line class="chart-axis-line" x1="${x}" y1="${paddingTop}" x2="${x}" y2="${240 - paddingBottom}" style="stroke: rgba(255,255,255,0.05);" />`;
+      
+      // Axis labels
+      gridLinesSvg += `<text class="chart-axis-text" x="${paddingLeft - 5}" y="${parseFloat(y) + 3}" text-anchor="end">${pct}%</text>`;
+      gridLinesSvg += `<text class="chart-axis-text" x="${x}" y="${240 - paddingBottom + 12}" text-anchor="middle">${pct}%</text>`;
+    }
+    
+    // Perfect line path (y = x)
+    const pStart = mapCoords(0, 0);
+    const pEnd = mapCoords(100, 1.0);
+    const perfectPath = `M ${pStart.x},${pStart.y} L ${pEnd.x},${pEnd.y}`;
+    
+    // Generate Kalshi curve points & path
+    let kalshiPointsSvg = '';
+    let kalshiPath = '';
+    let firstKalshi = true;
+    
+    curve.forEach(b => {
+      if (b.kalshiWinRate != null) {
+        const { x, y } = mapCoords(b.midpoint, b.kalshiWinRate);
+        kalshiPointsSvg += `<circle class="chart-dot kalshi" cx="${x}" cy="${y}" r="3"><title>Kalshi ${b.bucket}: ${Math.round(b.kalshiWinRate * 100)}% (${b.kalshiCount} contracts)</title></circle>`;
+        
+        if (firstKalshi) {
+          kalshiPath += `M ${x},${y}`;
+          firstKalshi = false;
+        } else {
+          kalshiPath += ` L ${x},${y}`;
+        }
+      }
+    });
+    
+    // Generate Model curve points & path
+    let modelPointsSvg = '';
+    let modelPath = '';
+    let firstModel = true;
+    
+    curve.forEach(b => {
+      if (b.modelWinRate != null) {
+        const { x, y } = mapCoords(b.midpoint, b.modelWinRate);
+        modelPointsSvg += `<circle class="chart-dot model" cx="${x}" cy="${y}" r="3"><title>Model ${b.bucket}: ${Math.round(b.modelWinRate * 100)}% (${b.modelCount} contracts)</title></circle>`;
+        
+        if (firstModel) {
+          modelPath += `M ${x},${y}`;
+          firstModel = false;
+        } else {
+          modelPath += ` L ${x},${y}`;
+        }
+      }
+    });
+    
+    chartEl.innerHTML = `
+      <svg viewBox="0 0 320 240">
+        <!-- Axes -->
+        <line class="chart-axis-line" x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${240 - paddingBottom}" />
+        <line class="chart-axis-line" x1="${paddingLeft}" y1="${240 - paddingBottom}" x2="${320 - paddingRight}" y2="${240 - paddingBottom}" />
+        
+        <!-- Grid and labels -->
+        ${gridLinesSvg}
+        
+        <!-- Perfect calibration line -->
+        <path class="chart-line perfect" d="${perfectPath}" />
+        
+        <!-- Kalshi calibration line -->
+        ${kalshiPath ? `<path class="chart-line kalshi" d="${kalshiPath}" />` : ''}
+        
+        <!-- Model calibration line -->
+        ${modelPath ? `<path class="chart-line model" d="${modelPath}" />` : ''}
+        
+        <!-- Points -->
+        ${kalshiPointsSvg}
+        ${modelPointsSvg}
+      </svg>
+    `;
+  }
+}
+
 const manualPriceTimers = {};
 
 function onManualPrice(e) {
