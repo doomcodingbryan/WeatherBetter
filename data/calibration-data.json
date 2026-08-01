@@ -1,137 +1,138 @@
 {
-  "generatedAt": "2026-07-01T10:38:23Z",
-  "calibratedBias": 1.32,
+  "generatedAt": "2026-08-01T09:01:00Z",
+  "calibratedBias": 0.88,
   "monthlyBias": {
     "1": 1.64,
     "2": 1.64,
     "3": 2.3,
-    "4": -0.18
+    "4": -0.18,
+    "5": -0.67
   },
-  "tailNu": 9.1,
+  "tailNu": 8.7,
   "calibratedSigmas": {
-    "0": 3.32,
-    "1": 3.64,
-    "2": 3.81,
-    "3": 4.49,
-    "4": 4.8,
-    "5": 6.13,
-    "6": 7.25,
-    "7": 7.81
+    "0": 3.22,
+    "1": 3.48,
+    "2": 3.65,
+    "3": 4.3,
+    "4": 4.62,
+    "5": 5.84,
+    "6": 6.85,
+    "7": 7.55
   },
   "errorDistributionByLead": [
     {
       "lead": 0,
-      "bias": 1.407,
+      "bias": 0.89,
       "priorSigma": 2.0,
-      "calibratedSigma": 3.318,
-      "count": 108
+      "calibratedSigma": 3.224,
+      "count": 136
     },
     {
       "lead": 1,
-      "bias": 0.963,
+      "bias": 0.504,
       "priorSigma": 2.5,
-      "calibratedSigma": 3.643,
-      "count": 108
+      "calibratedSigma": 3.481,
+      "count": 137
     },
     {
       "lead": 2,
-      "bias": 1.019,
+      "bias": 0.587,
       "priorSigma": 3.5,
-      "calibratedSigma": 3.808,
-      "count": 108
+      "calibratedSigma": 3.654,
+      "count": 138
     },
     {
       "lead": 3,
-      "bias": 1.194,
+      "bias": 0.813,
       "priorSigma": 3.5,
-      "calibratedSigma": 4.494,
-      "count": 108
+      "calibratedSigma": 4.296,
+      "count": 139
     },
     {
       "lead": 4,
-      "bias": 1.176,
+      "bias": 0.863,
       "priorSigma": 3.5,
-      "calibratedSigma": 4.804,
-      "count": 108
+      "calibratedSigma": 4.618,
+      "count": 139
     },
     {
       "lead": 5,
-      "bias": 1.356,
+      "bias": 0.917,
       "priorSigma": 3.5,
-      "calibratedSigma": 6.127,
-      "count": 108
+      "calibratedSigma": 5.84,
+      "count": 139
     },
     {
       "lead": 6,
-      "bias": 1.593,
+      "bias": 1.158,
       "priorSigma": 3.5,
-      "calibratedSigma": 7.25,
-      "count": 108
+      "calibratedSigma": 6.847,
+      "count": 139
     },
     {
       "lead": 7,
-      "bias": 1.861,
+      "bias": 1.338,
       "priorSigma": 3.5,
-      "calibratedSigma": 7.807,
-      "count": 108
+      "calibratedSigma": 7.551,
+      "count": 139
     }
   ],
   "calibrationCurve": [
     {
       "bucket": "0-10%",
       "midpoint": 5,
-      "kalshiWinRate": 0.021,
-      "kalshiCount": 191,
-      "modelWinRate": 0.083,
-      "modelCount": 108
+      "kalshiWinRate": 0.022,
+      "kalshiCount": 270,
+      "modelWinRate": 0.074,
+      "modelCount": 136
     },
     {
       "bucket": "10-20%",
       "midpoint": 15,
-      "kalshiWinRate": 0.119,
-      "kalshiCount": 176,
-      "modelWinRate": 0.149,
-      "modelCount": 315
+      "kalshiWinRate": 0.115,
+      "kalshiCount": 208,
+      "modelWinRate": 0.142,
+      "modelCount": 380
     },
     {
       "bucket": "20-30%",
       "midpoint": 25,
-      "kalshiWinRate": 0.232,
-      "kalshiCount": 142,
-      "modelWinRate": 0.225,
-      "modelCount": 200
+      "kalshiWinRate": 0.221,
+      "kalshiCount": 172,
+      "modelWinRate": 0.23,
+      "modelCount": 283
     },
     {
       "bucket": "30-40%",
       "midpoint": 35,
-      "kalshiWinRate": 0.33,
-      "kalshiCount": 109,
-      "modelWinRate": 0.154,
-      "modelCount": 13
+      "kalshiWinRate": 0.355,
+      "kalshiCount": 141,
+      "modelWinRate": 0.211,
+      "modelCount": 19
     },
     {
       "bucket": "40-50%",
       "midpoint": 45,
-      "kalshiWinRate": 0.435,
-      "kalshiCount": 23,
-      "modelWinRate": 0.25,
-      "modelCount": 4
+      "kalshiWinRate": 0.455,
+      "kalshiCount": 33,
+      "modelWinRate": 0.143,
+      "modelCount": 7
     },
     {
       "bucket": "50-60%",
       "midpoint": 55,
-      "kalshiWinRate": 0.6,
-      "kalshiCount": 5,
+      "kalshiWinRate": 0.571,
+      "kalshiCount": 7,
       "modelWinRate": 0.0,
       "modelCount": 2
     },
     {
       "bucket": "60-70%",
       "midpoint": 65,
-      "kalshiWinRate": 0.5,
-      "kalshiCount": 2,
-      "modelWinRate": 0.0,
-      "modelCount": 1
+      "kalshiWinRate": 0.667,
+      "kalshiCount": 3,
+      "modelWinRate": 0.5,
+      "modelCount": 2
     },
     {
       "bucket": "70-80%",
@@ -159,8 +160,8 @@
     }
   ],
   "accuracyScores": {
-    "kalshiBrier": 0.1224,
-    "modelBrier": 0.1369,
-    "tripletsCount": 648
+    "kalshiBrier": 0.1194,
+    "modelBrier": 0.1353,
+    "tripletsCount": 834
   }
 }
