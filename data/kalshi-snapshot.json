@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-16T23:41:58Z",
+  "fetchedAt": "2026-08-16T23:55:57Z",
   "series": "KXHIGHNY",
   "markets": [
     {
@@ -68,7 +68,7 @@
       "liquidity_dollars": "0.0000",
       "market_type": "binary",
       "no_ask_dollars": "0.2300",
-      "no_bid_dollars": "0.2200",
+      "no_bid_dollars": "0.2100",
       "no_sub_title": "83\u00b0 or below",
       "notional_value_dollars": "1.0000",
       "occurrence_datetime": "2026-08-18T14:00:00Z",
@@ -96,8 +96,8 @@
       "updated_time": "2026-08-16T14:00:00.929336Z",
       "volume_24h_fp": "3356.07",
       "volume_fp": "3356.07",
-      "yes_ask_dollars": "0.7800",
-      "yes_ask_size_fp": "103.00",
+      "yes_ask_dollars": "0.7900",
+      "yes_ask_size_fp": "102.00",
       "yes_bid_dollars": "0.7700",
       "yes_bid_size_fp": "566.45",
       "yes_sub_title": "83\u00b0 or below"
@@ -252,7 +252,7 @@
       "yes_ask_dollars": "0.0300",
       "yes_ask_size_fp": "7.26",
       "yes_bid_dollars": "0.0200",
-      "yes_bid_size_fp": "138.88",
+      "yes_bid_size_fp": "132.00",
       "yes_sub_title": "86\u00b0 to 87\u00b0"
     },
     {
@@ -271,7 +271,7 @@
       "latest_expiration_time": "2026-08-24T14:00:00Z",
       "liquidity_dollars": "0.0000",
       "market_type": "binary",
-      "no_ask_dollars": "0.8200",
+      "no_ask_dollars": "0.8100",
       "no_bid_dollars": "0.7800",
       "no_sub_title": "84\u00b0 to 85\u00b0",
       "notional_value_dollars": "1.0000",
@@ -302,8 +302,8 @@
       "volume_fp": "1247.52",
       "yes_ask_dollars": "0.2200",
       "yes_ask_size_fp": "53.00",
-      "yes_bid_dollars": "0.1800",
-      "yes_bid_size_fp": "5.00",
+      "yes_bid_dollars": "0.1900",
+      "yes_bid_size_fp": "37.10",
       "yes_sub_title": "84\u00b0 to 85\u00b0"
     },
     {
@@ -351,7 +351,7 @@
       "volume_24h_fp": "3576.61",
       "volume_fp": "5742.06",
       "yes_ask_dollars": "0.0100",
-      "yes_ask_size_fp": "44031.57",
+      "yes_ask_size_fp": "44030.57",
       "yes_bid_dollars": "0.0000",
       "yes_bid_size_fp": "0.00",
       "yes_sub_title": "86\u00b0 or above"
@@ -378,8 +378,8 @@
       "occurrence_datetime": "2026-08-17T14:00:00Z",
       "open_interest_fp": "4377.50",
       "open_time": "2026-08-15T14:00:00Z",
-      "previous_price_dollars": "0.0900",
-      "previous_yes_ask_dollars": "0.0900",
+      "previous_price_dollars": "0.1200",
+      "previous_yes_ask_dollars": "0.1200",
       "previous_yes_bid_dollars": "0.0700",
       "price_level_structure": "linear_cent",
       "price_ranges": [
@@ -398,7 +398,7 @@
       "ticker": "KXHIGHNY-26AUG16-T78",
       "title": "Will the maximum temperature be <78\u00b0 on Aug 16, 2026?",
       "updated_time": "2026-08-15T14:00:00.993884Z",
-      "volume_24h_fp": "4863.60",
+      "volume_24h_fp": "4844.83",
       "volume_fp": "7083.84",
       "yes_ask_dollars": "0.0100",
       "yes_ask_size_fp": "167946.32",
@@ -478,7 +478,7 @@
       "no_sub_title": "82\u00b0 to 83\u00b0",
       "notional_value_dollars": "1.0000",
       "occurrence_datetime": "2026-08-17T14:00:00Z",
-      "open_interest_fp": "16790.47",
+      "open_interest_fp": "16882.47",
       "open_time": "2026-08-15T14:00:00Z",
       "previous_price_dollars": "0.1400",
       "previous_yes_ask_dollars": "0.1400",
@@ -500,10 +500,10 @@
       "ticker": "KXHIGHNY-26AUG16-B82.5",
       "title": "Will the maximum temperature be 82-83\u00b0 on Aug 16, 2026?",
       "updated_time": "2026-08-15T14:00:00.993884Z",
-      "volume_24h_fp": "24999.22",
-      "volume_fp": "25791.91",
+      "volume_24h_fp": "25091.22",
+      "volume_fp": "25883.91",
       "yes_ask_dollars": "0.0100",
-      "yes_ask_size_fp": "46658.78",
+      "yes_ask_size_fp": "46566.78",
       "yes_bid_dollars": "0.0000",
       "yes_bid_size_fp": "0.00",
       "yes_sub_title": "82\u00b0 to 83\u00b0"
@@ -551,12 +551,12 @@
       "ticker": "KXHIGHNY-26AUG16-B80.5",
       "title": "Will the maximum temperature be 80-81\u00b0 on Aug 16, 2026?",
       "updated_time": "2026-08-15T14:00:00.993884Z",
-      "volume_24h_fp": "28289.52",
-      "volume_fp": "28793.67",
+      "volume_24h_fp": "28390.22",
+      "volume_fp": "28905.30",
       "yes_ask_dollars": "1.0000",
       "yes_ask_size_fp": "0.00",
       "yes_bid_dollars": "0.9900",
-      "yes_bid_size_fp": "33255.13",
+      "yes_bid_size_fp": "33143.50",
       "yes_sub_title": "80\u00b0 to 81\u00b0"
     },
     {
@@ -583,8 +583,8 @@
       "open_interest_fp": "18548.90",
       "open_time": "2026-08-15T14:00:00Z",
       "previous_price_dollars": "0.3600",
-      "previous_yes_ask_dollars": "0.3700",
-      "previous_yes_bid_dollars": "0.3600",
+      "previous_yes_ask_dollars": "0.3600",
+      "previous_yes_bid_dollars": "0.3500",
       "price_level_structure": "linear_cent",
       "price_ranges": [
         {
