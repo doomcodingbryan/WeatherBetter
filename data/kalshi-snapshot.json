@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-08-20T08:04:12Z",
+  "fetchedAt": "2026-08-20T08:54:49Z",
   "series": "KXHIGHNY",
   "markets": [
     {
@@ -150,7 +150,7 @@
       "yes_ask_dollars": "0.2900",
       "yes_ask_size_fp": "1.00",
       "yes_bid_dollars": "0.2600",
-      "yes_bid_size_fp": "16.00",
+      "yes_bid_size_fp": "1.00",
       "yes_sub_title": "84\u00b0 to 85\u00b0"
     },
     {
